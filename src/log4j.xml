@@ -1,0 +1,13 @@
+<appender name="DEBUG" class="org.apache.log4j.RollingFileAppender">
+    <param name="File" value="./errors.log"/>
+    <param name="Append" value="true"/>
+    <param name="MaxFileSize" value="1500KB"/>
+    <param name="MaxBackupIndex" value="2"/>
+    <layout class="org.apache.log4j.PatternLayout">
+        <param name="ConversionPattern" value="**FOOBAR** %d{dd.MM.yyyy HH:mm:ss} %c  %m%n"/>
+    </layout>
+    <filter class="org.apache.log4j.varia.LevelRangeFilter">
+        <param name="LevelMin" value="DEBUG" />
+        <param name="LevelMax" value="FATAL" />
+    </filter>
+</appender>
