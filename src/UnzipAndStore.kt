@@ -21,38 +21,56 @@ object UnzipAndStore {
             exitProcess(1)
         }
 
-        val inputDir: String = args[0]
-        val outputDir: String = args[1]
+        val inputDir: File = File(args[0])
+        val outputDir: File = File(args[1])
         val bucket: String = args[2]
         val keyPrefix: String = args[3]
 
         val unZip = UnZip()
 
-        //val fileList = unZip.unZipIt(inputDir, outputDir)
-        val testFldr = File("C:\\Users\\rbasil\\Dropbox\\Natalya\\Project 1 2016-17")
-        Uploader.uploadFiles(bucket, keyPrefix, testFldr, testFldr.listFiles().toMutableList() )
-
-/*        Uploader.uploadFiles(bucket, keyPrefix, File(outputDir), File(outputDir).listFiles { item -> item.isFile && item.extension == "csv" }.toMutableList() )*/
-
-        if (File(inputDir).isDirectory) {
-            unzipFilesInDir(inputDir, outputDir, unZip)
+        var fileList: MutableList<File> = mutableListOf()
+        if (inputDir.isDirectory) {
+            for (file in inputDir.listFiles { item-> item.isDirectory }) {
+                fileList.addAll(unzipFilesInDir(file, outputDir, unZip))
+            }
+            // unzip files in root dir
+            fileList.addAll(unzipFilesInDir(inputDir, outputDir, unZip))
+        } else {
+            // inputDir is a file (zip??)
+            fileList.addAll(unzipFilesInDir(inputDir, outputDir, unZip))
         }
 
-        // Runtime.getRuntime().exec("mycommand.sh")
+        Uploader.uploadFiles(bucket, keyPrefix, outputDir, outputDir.listFiles { item -> item.isFile && item.extension == "csv" }.toMutableList() )
+
     }
 
-    private fun unzipFilesInDir(inputDir: String, outputDir: String, unZip: UnZip): MutableList<File> {
+    private fun unzipFilesInDir(inputDir: File, outputDir: File, unZip: UnZip): MutableList<File> {
         var fileList: MutableList<File> = mutableListOf()
-        File(inputDir).listFiles(FileFilter { item -> item.isFile && item.extension == "zip" })
-                .map { unZip.unZipIt(it.absolutePath, outputDir) }
-                .flatMap { it }
-                .forEach {
-                    println(it.name + "\t" + it.absolutePath + "\t" + it.canonicalPath + "\t" + it.path.replace(it.name, "").substringBeforeLast("\\").substring(3))
-                    fileList.add(it)
-                    //UploadFile.upload(bucket, it.absolutePath, keyPrefix)
-                }
+        if (inputDir.isDirectory) {
+            inputDir.listFiles(FileFilter { item -> item.isFile && item.extension.toLowerCase() == "zip" })
+                    .map { unZip.unZipIt(it.absolutePath, outputDir.absolutePath) }
+                    .flatMap { it }
+                    //.filter { it.extension.toLowerCase() == "csv" }
+                    .forEach {
+                        printToConsole(it)
+                        fileList.add(it)
+                        //UploadFile.upload(bucket, it.absolutePath, keyPrefix)
+                    }
+        } else if (inputDir.isFile && inputDir.extension.toLowerCase() == "zip") {
+            unZip.unZipIt(inputDir.absolutePath, outputDir.absolutePath)
+                    .forEach {
+                        printToConsole(it)
+                        fileList.add(it)
+                    }
+        }
+/*
         File(inputDir).listFiles( {item -> item.isDirectory })
                 .map { }
+*/
         return fileList
+    }
+
+    private fun printToConsole(inputFile: File) {
+        println(inputFile.name + "\t" + inputFile.absolutePath + "\t" + inputFile.canonicalPath + "\t" + inputFile.path.replace(inputFile.name, "").substringBeforeLast("\\").substring(3))
     }
 }
